@@ -9,14 +9,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/products/identify", async (req, res) => {
     try {
       const { image } = req.body;
-      
+
       if (!image) {
         return res.status(400).json({ message: "Image is required" });
       }
 
+      console.log('Starting OCR process...');
       const extractedText = await extractTextFromImage(image);
+      console.log('Extracted text:', extractedText);
+
+      console.log('Starting OpenAI identification...');
       const productDetails = await identifyProduct(image, extractedText);
-      
+      console.log('Product details:', productDetails);
+
       const product = await storage.createProduct({
         ...productDetails,
         identifiedText: extractedText,
@@ -26,8 +31,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(product);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Failed to process image" });
+      console.error('Detailed error:', error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: `Failed to process image: ${errorMessage}` });
     }
   });
 
@@ -36,6 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.getProducts();
       res.json(products);
     } catch (error) {
+      console.error('Error fetching products:', error);
       res.status(500).json({ message: "Failed to fetch products" });
     }
   });
@@ -49,6 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.searchProducts(q);
       res.json(products);
     } catch (error) {
+      console.error('Error searching products:', error);
       res.status(500).json({ message: "Failed to search products" });
     }
   });
