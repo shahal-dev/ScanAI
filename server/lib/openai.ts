@@ -2,6 +2,7 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export async function identifyProduct(image: string, extractedText: string): Promise<{
   name: string;
   description: string;
@@ -10,7 +11,7 @@ export async function identifyProduct(image: string, extractedText: string): Pro
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -21,7 +22,7 @@ export async function identifyProduct(image: string, extractedText: string): Pro
           content: [
             {
               type: "text",
-              text: `Please analyze this product. The OCR extracted text is: ${extractedText}. Identify the product name, provide a detailed description, identify the brand, and categorize the product. Respond in JSON format.`
+              text: `Please analyze this product. The OCR extracted text is: ${extractedText}. Identify the product name, provide a detailed description, identify the brand, and categorize the product. Respond in JSON format with the following fields: name, description, brand, category.`
             },
             {
               type: "image_url",
