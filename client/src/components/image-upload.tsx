@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { compressImage } from '@/lib/utils';
 
 interface ImageUploadProps {
   onUpload: (base64: string) => void;
@@ -9,13 +10,18 @@ interface ImageUploadProps {
 
 export function ImageUpload({ onUpload }: ImageUploadProps) {
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          onUpload(base64);
+        reader.onload = async () => {
+          try {
+            const base64 = (reader.result as string).split(',')[1];
+            const compressed = await compressImage(base64);
+            onUpload(compressed);
+          } catch (error) {
+            console.error('Failed to compress image:', error);
+          }
         };
         reader.readAsDataURL(file);
       }
@@ -27,6 +33,7 @@ export function ImageUpload({ onUpload }: ImageUploadProps) {
     onDrop,
     accept: { 'image/*': [] },
     maxFiles: 1,
+    maxSize: 10 * 1024 * 1024, // 10MB max
   });
 
   return (
