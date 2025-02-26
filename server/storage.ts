@@ -1,6 +1,6 @@
 import { products, users, type Product, type InsertProduct, type User, type InsertUser } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -59,11 +59,9 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(products)
       .where(
-        eq(
-          products.name.toLowerCase().includes(lowercaseQuery) ||
-            products.description.toLowerCase().includes(lowercaseQuery) ||
-            products.brand?.toLowerCase().includes(lowercaseQuery)
-        )
+        sql`LOWER(name) LIKE ${`%${lowercaseQuery}%`} OR 
+            LOWER(description) LIKE ${`%${lowercaseQuery}%`} OR 
+            LOWER(brand) LIKE ${`%${lowercaseQuery}%`}`
       );
   }
 
