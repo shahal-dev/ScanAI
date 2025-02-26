@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GitHubStrategy } from "passport-github2";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -63,6 +64,34 @@ export function setupAuth(app: Express) {
     }),
   );
 
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    passport.use(
+      new GitHubStrategy(
+        {
+          clientID: process.env.GITHUB_CLIENT_ID,
+          clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          callbackURL: "/api/auth/github/callback",
+        },
+        async (_accessToken, _refreshToken, profile, done) => {
+          try {
+            let user = await storage.getUserByUsername(profile.username!);
+            if (!user) {
+              // Create a new user with a random password
+              const password = await hashPassword(randomBytes(32).toString("hex"));
+              user = await storage.createUser({
+                username: profile.username!,
+                password,
+              });
+            }
+            return done(null, user);
+          } catch (error) {
+            return done(error);
+          }
+        },
+      ),
+    );
+  }
+
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
@@ -121,4 +150,17 @@ export function setupAuth(app: Express) {
     }
     res.json(req.user);
   });
+
+  // GitHub OAuth routes
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    app.get("/api/auth/github", passport.authenticate("github", { scope: ["user:email"] }));
+
+    app.get(
+      "/api/auth/github/callback",
+      passport.authenticate("github", {
+        successRedirect: "/",
+        failureRedirect: "/auth",
+      }),
+    );
+  }
 }
