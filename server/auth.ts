@@ -102,6 +102,7 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Modify the registration endpoint to not automatically log in
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
@@ -115,10 +116,8 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
       });
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(user);
-      });
+      // Return success without logging in
+      res.status(201).json({ message: "Registration successful" });
     } catch (error) {
       next(error);
     }

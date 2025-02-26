@@ -18,10 +18,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { SiGithub } from 'react-icons/si';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AuthPage() {
   const [_, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const { toast } = useToast();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -50,7 +52,20 @@ export default function AuthPage() {
   });
 
   const onRegister = registerForm.handleSubmit((data) => {
-    registerMutation.mutate(data);
+    registerMutation.mutate(data, {
+      onSuccess: () => {
+        toast({
+          title: "Registration successful",
+          description: "Please log in with your new account",
+        });
+        loginForm.reset();
+        // Use a more reliable way to switch tabs
+        const loginTab = document.querySelector('[data-state="inactive"][value="login"]') as HTMLElement;
+        if (loginTab) {
+          loginTab.click();
+        }
+      },
+    });
   });
 
   return (
