@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GitHubStrategy } from "passport-github2";
+import type { Profile } from "passport-github2";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -51,7 +52,7 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy(async (username: string, password: string, done) => {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.password))) {
@@ -72,14 +73,14 @@ export function setupAuth(app: Express) {
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
           callbackURL: "/api/auth/github/callback",
         },
-        async (_accessToken, _refreshToken, profile, done) => {
+        async (accessToken: string, refreshToken: string, profile: Profile, done: (error: any, user?: any) => void) => {
           try {
-            let user = await storage.getUserByUsername(profile.username!);
+            let user = await storage.getUserByUsername(profile.username || '');
             if (!user) {
               // Create a new user with a random password
               const password = await hashPassword(randomBytes(32).toString("hex"));
               user = await storage.createUser({
-                username: profile.username!,
+                username: profile.username || profile.id,
                 password,
               });
             }
@@ -124,7 +125,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user) => {
+    passport.authenticate("local", (err: Error | null, user: Express.User | false) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
