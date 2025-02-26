@@ -1,53 +1,102 @@
-import { products, type Product, type InsertProduct } from "@shared/schema";
+import { products, users, type Product, type InsertProduct, type User, type InsertUser } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
-  createProduct(product: InsertProduct): Promise<Product>;
+  createProduct(product: InsertProduct, userId: number): Promise<Product>;
   getProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   searchProducts(query: string): Promise<Product[]>;
+  getUserProducts(userId: number): Promise<Product[]>;
+
+  // Auth related methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
+  // Session store
+  sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private products: Map<number, Product>;
-  private currentId: number;
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
 
   constructor() {
-    this.products = new Map();
-    this.currentId = 1;
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
+    });
   }
 
-  async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const id = this.currentId++;
-    const product: Product = {
-      ...insertProduct,
-      id,
-      metadata: insertProduct.metadata ?? null,
-      brand: insertProduct.brand ?? null,
-      category: insertProduct.category ?? null,
-      identifiedText: insertProduct.identifiedText ?? null,
-      imageUrl: insertProduct.imageUrl ?? null
-    };
-    this.products.set(id, product);
+  async createProduct(insertProduct: InsertProduct, userId: number): Promise<Product> {
+    const [product] = await db
+      .insert(products)
+      .values({ ...insertProduct, userId })
+      .returning();
     return product;
   }
 
   async getProducts(): Promise<Product[]> {
-    return Array.from(this.products.values());
+    return await db.select().from(products);
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    return this.products.get(id);
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, id));
+    return product;
   }
 
   async searchProducts(query: string): Promise<Product[]> {
     const lowercaseQuery = query.toLowerCase();
-    return Array.from(this.products.values()).filter(
-      (product) =>
-        product.name.toLowerCase().includes(lowercaseQuery) ||
-        product.description.toLowerCase().includes(lowercaseQuery) ||
-        product.brand?.toLowerCase().includes(lowercaseQuery)
-    );
+    return await db
+      .select()
+      .from(products)
+      .where(
+        eq(
+          products.name.toLowerCase().includes(lowercaseQuery) ||
+            products.description.toLowerCase().includes(lowercaseQuery) ||
+            products.brand?.toLowerCase().includes(lowercaseQuery)
+        )
+      );
+  }
+
+  async getUserProducts(userId: number): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(eq(products.userId, userId));
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
