@@ -42,7 +42,12 @@ app.use((req, res, next) => {
   next();
 });
 
+import { initEmailTransport } from "./lib/email";
+
 (async () => {
+  // Initialize email transport
+  await initEmailTransport();
+  
   // Setup authentication before registering routes
   setupAuth(app);
 

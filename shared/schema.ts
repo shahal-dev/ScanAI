@@ -6,7 +6,12 @@ import { relations } from "drizzle-orm";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  isVerified: text("is_verified").default("false"),
+  verificationToken: text("verification_token"),
+  role: text("role").default("user").notNull(),
+  profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -37,8 +42,9 @@ export const productsRelations = relations(products, ({ one }) => ({
 
 export const insertUserSchema = createInsertSchema(users, {
   username: z.string().min(3).max(50),
+  email: z.string().email(),
   password: z.string().min(6),
-}).omit({ id: true, createdAt: true });
+}).omit({ id: true, createdAt: true, isVerified: true, verificationToken: true, role: true, profilePicture: true });
 
 export const insertProductSchema = createInsertSchema(products).omit({ 
   id: true,

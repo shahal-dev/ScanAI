@@ -4,8 +4,17 @@ import { storage } from "./storage";
 import { extractTextFromImage } from "./lib/ocr";
 import { identifyProduct } from "./lib/openai";
 import { insertProductSchema } from "@shared/schema";
+import { registerProfileRoutes } from "./routes/profile";
+import { registerAdminRoutes } from "./routes/admin";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve uploaded files
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  
+  // Register other route modules
+  registerProfileRoutes(app);
+  registerAdminRoutes(app);
   app.post("/api/products/identify", async (req, res) => {
     try {
       // Check if user is authenticated

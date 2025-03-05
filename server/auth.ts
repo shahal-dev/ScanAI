@@ -103,24 +103,80 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Modify the registration endpoint to not automatically log in
+  // Import email utilities
+  import { generateVerificationToken, sendVerificationEmail } from "./lib/email";
+
+  // Modify the registration endpoint to include email verification
   app.post("/api/register", async (req, res, next) => {
     try {
+      // Check if username or email already exists
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
+      
+      const existingEmail = await storage.getUserByEmail(req.body.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
 
+      // Generate verification token
+      const verificationToken = generateVerificationToken();
+      
+      // Hash password
       const hashedPassword = await hashPassword(req.body.password);
+      
+      // Create user with verification token
       const user = await storage.createUser({
         username: req.body.username,
+        email: req.body.email,
         password: hashedPassword,
+        isVerified: "false",
+        verificationToken,
       });
 
+      // Send verification email
+      try {
+        const emailUrl = await sendVerificationEmail(req.body.email, verificationToken, req.body.username);
+        console.log("Verification email preview:", emailUrl);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue anyway, we don't want to prevent registration if email fails
+      }
+
       // Return success without logging in
-      res.status(201).json({ message: "Registration successful" });
+      res.status(201).json({ 
+        message: "Registration successful! Please check your email to verify your account." 
+      });
     } catch (error) {
       next(error);
+    }
+  });
+  
+  // Add email verification endpoint
+  app.get("/api/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== "string") {
+        return res.status(400).json({ message: "Invalid verification token" });
+      }
+      
+      // Find user with this verification token
+      const user = await storage.getUserByVerificationToken(token);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Verification token not found or already used" });
+      }
+      
+      // Mark user as verified
+      await storage.verifyUser(user.id);
+      
+      // Redirect to login page or show success message
+      res.redirect("/auth?verified=true");
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Error during email verification" });
     }
   });
 

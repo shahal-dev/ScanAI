@@ -17,7 +17,14 @@ export interface IStorage {
   // Auth related methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  createUser(user: Partial<User>): Promise<User>;
+  verifyUser(userId: number): Promise<void>;
+  updateUserProfile(userId: number, data: Partial<User>): Promise<User>;
+  changePassword(userId: number, password: string): Promise<void>;
+  deleteUser(userId: number): Promise<void>;
+  getAllUsers(): Promise<User[]>;
 
   // Session store
   sessionStore: session.Store;
@@ -93,13 +100,73 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.username, username));
     return user;
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    return user;
+  }
+  
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.verificationToken, token));
+    return user;
+  }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(userData: Partial<User>): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
       .returning();
     return user;
+  }
+  
+  async verifyUser(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        isVerified: "true", 
+        verificationToken: null 
+      })
+      .where(eq(users.id, userId));
+  }
+  
+  async updateUserProfile(userId: number, userData: Partial<User>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  }
+  
+  async changePassword(userId: number, password: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password })
+      .where(eq(users.id, userId));
+  }
+  
+  async deleteUser(userId: number): Promise<void> {
+    // First delete all associated products
+    await db
+      .delete(products)
+      .where(eq(products.userId, userId));
+      
+    // Then delete the user
+    await db
+      .delete(users)
+      .where(eq(users.id, userId));
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users);
   }
 }
 
