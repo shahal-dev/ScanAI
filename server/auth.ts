@@ -8,6 +8,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { generateVerificationToken, sendVerificationEmail } from "./lib/email";
 
 declare global {
   namespace Express {
@@ -102,9 +103,6 @@ export function setupAuth(app: Express) {
       done(error);
     }
   });
-
-  // Import email utilities
-  import { generateVerificationToken, sendVerificationEmail } from "./lib/email";
 
   // Modify the registration endpoint to include email verification
   app.post("/api/register", async (req, res, next) => {
