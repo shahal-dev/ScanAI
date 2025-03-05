@@ -132,14 +132,19 @@ export function setupAuth(app: Express) {
       }
       req.login(user, (err) => {
         if (err) return next(err);
+        console.log(`User logged in: ${user.username} (ID: ${user.id})`);
         res.json(user);
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
+    const user = req.user;
     req.logout((err) => {
       if (err) return next(err);
+      if (user) {
+        console.log(`User logged out: ${user.username} (ID: ${user.id})`);
+      }
       res.sendStatus(200);
     });
   });

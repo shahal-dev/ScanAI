@@ -12,6 +12,11 @@ app.use((req, res, next) => {
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // Log authenticated user
+  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+    console.log(`Request by authenticated user: ${req.user.username} (ID: ${req.user.id})`);
+  }
+
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
