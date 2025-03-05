@@ -8,6 +8,11 @@ import { insertProductSchema } from "@shared/schema";
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/products/identify", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       const { image } = req.body;
 
       if (!image) {
@@ -22,12 +27,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productDetails = await identifyProduct(image, extractedText);
       console.log('Product details:', productDetails);
 
+      // Use the logged-in user's ID instead of an auto-incremented value
+      const userId = req.user?.id;
+      console.log(`Creating product for user ID: ${userId}`);
+
       const product = await storage.createProduct({
         ...productDetails,
         identifiedText: extractedText,
         imageUrl: image,
         metadata: {}
-      });
+      }, userId);
 
       res.json(product);
     } catch (error) {
