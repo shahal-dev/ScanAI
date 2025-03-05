@@ -55,8 +55,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/products", async (req, res) => {
     try {
-      const products = await storage.getProducts();
-      res.json(products);
+      // Only get products for the authenticated user
+      if (req.isAuthenticated && req.isAuthenticated()) {
+        const userId = req.user?.id;
+        console.log(`Fetching products for user ID: ${userId}`);
+        const products = await storage.getProducts(userId);
+        res.json(products);
+      } else {
+        // If not authenticated, return empty array
+        res.json([]);
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
       res.status(500).json({ message: "Failed to fetch products" });
