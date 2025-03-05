@@ -31,12 +31,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user?.id;
       console.log(`Creating product for user ID: ${userId}`);
 
+      // Make sure userId is defined before creating the product
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not available. Please log in again." });
+      }
+
       const product = await storage.createProduct({
         ...productDetails,
         identifiedText: extractedText,
         imageUrl: image,
         metadata: {}
       }, userId);
+
+      console.log(`Product created successfully for user ID: ${userId}`);
 
       res.json(product);
     } catch (error) {
