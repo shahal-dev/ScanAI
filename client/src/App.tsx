@@ -8,6 +8,8 @@ import { MainNav } from "@/components/main-nav";
 import Home from "@/pages/home";
 import PluginDemo from "@/pages/plugin-demo";
 import AuthPage from "@/pages/auth";
+import ProfilePage from "@/pages/profile";
+import PasswordResetPage from "@/pages/password-reset";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,7 +20,9 @@ function Router() {
         <Switch>
           <ProtectedRoute path="/" component={Home} />
           <ProtectedRoute path="/plugin-demo" component={PluginDemo} />
+          <ProtectedRoute path="/profile" component={ProfilePage} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/password-reset" component={PasswordResetPage} />
           <Route component={NotFound} />
         </Switch>
       </main>

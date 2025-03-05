@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   isVerified: text("is_verified").default("false"),
   verificationToken: text("verification_token"),
+  resetToken: text("reset_token"),
   role: text("role").default("user").notNull(),
   profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -168,6 +168,30 @@ export function registerProfileRoutes(app: Express) {
     }
   });
 
+  // Get user profile data
+  app.get("/api/profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      // Get user data
+      const user = await storage.getUser(req.user!.id);
+      
+      // Get user's products count
+      const productsCount = await storage.getUserProductsCount(req.user!.id);
+      
+      // Return user profile data
+      res.json({
+        ...user,
+        productsCount
+      });
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ message: "Failed to fetch profile data" });
+    }
+  });
+
   // Delete account
   app.delete("/api/profile", async (req, res) => {
     if (!req.isAuthenticated()) {

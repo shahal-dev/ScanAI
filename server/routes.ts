@@ -6,6 +6,7 @@ import { identifyProduct } from "./lib/openai";
 import { insertProductSchema } from "@shared/schema";
 import { registerProfileRoutes } from "./routes/profile";
 import { registerAdminRoutes } from "./routes/admin";
+import { registerResetPasswordRoutes } from "./routes/reset-password";
 import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -15,6 +16,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register other route modules
   registerProfileRoutes(app);
   registerAdminRoutes(app);
+  registerResetPasswordRoutes(app);
   app.post("/api/products/identify", async (req, res) => {
     try {
       // Check if user is authenticated
